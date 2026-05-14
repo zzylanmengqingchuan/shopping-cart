@@ -6,7 +6,7 @@ function calculateTotal(items) {
 
 function applyDiscount(total) {
   if (total >= 100) {
-    return total + 20;   // 故意改错
+    return total - 20;   // 故意改错
   }
   return total;
 }

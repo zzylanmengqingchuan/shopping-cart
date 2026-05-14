@@ -17,3 +17,5 @@ function checkout(items) {
 }
 
 module.exports = { calculateTotal, applyDiscount, checkout };
+
+// test

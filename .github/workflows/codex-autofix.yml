@@ -1,0 +1,53 @@
+name: Codex Auto-Fix on Failure
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  auto-fix:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      FAILED_WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+      FAILED_RUN_URL: ${{ github.event.workflow_run.html_url }}
+      FAILED_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      FAILED_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Checkout Failing Ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.FAILED_HEAD_SHA }}
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Run Codex
+        uses: openai/codex-action@main
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: "这是一个 Node.js 项目，使用 Jest 做测试。请读取仓库代码，运行测试套件，找到导致测试失败的最小改动范围，修复它，然后停止。不要修改与失败无关的代码。"
+          codex_args: '["--config","sandbox_mode=\"workspace-write\""]'
+      - name: Verify tests pass
+        run: npm test --silent
+      - name: Create Pull Request
+        if: success()
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "fix: Codex 自动修复失败的测试"
+          branch: codex/auto-fix-${{ github.event.workflow_run.run_id }}
+          base: ${{ env.FAILED_HEAD_BRANCH }}
+          title: "🤖 Codex 自动修复 CI 失败"
+          body: |
+            Codex 检测到 CI 失败，自动生成了这个修复 PR。
+
+            失败的工作流：${{ env.FAILED_WORKFLOW_NAME }}
+            失败记录链接：${{ env.FAILED_RUN_URL }}
+
+            请检查改动内容，确认无误后合并。

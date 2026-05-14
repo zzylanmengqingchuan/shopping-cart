@@ -31,9 +31,9 @@ jobs:
       - name: Run Codex
         uses: openai/codex-action@main
         with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt: "这是一个 Node.js 项目，使用 Jest 做测试。请读取仓库代码，运行测试套件，找到导致测试失败的最小改动范围，修复它，然后停止。不要修改与失败无关的代码。"
-          codex_args: '["--config","sandbox_mode=\"workspace-write\""]'
+          sandbox: workspace-write
       - name: Verify tests pass
         run: npm test --silent
       - name: Create Pull Request
